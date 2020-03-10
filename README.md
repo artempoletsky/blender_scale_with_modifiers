@@ -17,7 +17,7 @@ After script finish you can hide selected objects, and you will get only objects
 
 You can disallow script to affect some modifiers by hiding them in the viewport.
 
-## Supported modificators and they properties
+## Supported modifiers and they properties
 
 1. Array - Constant offset values
 2. Screw - Screw offset
