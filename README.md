@@ -1,5 +1,5 @@
 # Scale with modifiers 
-Blender addon that's adds operator which applies scale to an object and its modifiers
+Blender addon which adds operator which applies scale to an object and its modifiers. For Blender 2.8+
 ## Download and installation
 
 1. Download latest `scale_with_modifiers.py` from https://github.com/artempoletsky/blender_scale_with_modifiers/releases
