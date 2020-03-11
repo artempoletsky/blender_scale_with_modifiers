@@ -1,8 +1,8 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 0),
-    "blender": (2, 80, 0),
+    "version": (1, 0, 1),
+    "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
     "warning": "",
@@ -14,18 +14,22 @@ import bpy
 
 MODS = {
     'ARRAY': 'function',
+    'BOOLEAN': {'double_threshold'},
     'BEVEL': {'width'},
-    'SCREW': {'screw_offset'},
+    'SCREW': {'screw_offset', 'merge_threshold'},
+    'MIRROR': {'merge_threshold'},
     'SOLIDIFY': {'thickness'},
     'WIREFRAME': {'thickness'},
     'DISPLACE': {'strength'},
     'SHRINKWRAP': {'offset'},
+    'WELD': {'merge_threshold'},
 }
 
 def funcARRAY(mod, scale):
     mod.constant_offset_displace[0] *= scale
     mod.constant_offset_displace[1] *= scale
     mod.constant_offset_displace[2] *= scale
+    mod.merge_threshold *= scale
     
 
 class ScaleWithModifiersOperator(bpy.types.Operator):
