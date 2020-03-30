@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 1, 0),
+    "version": (1, 2, 0),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -29,120 +29,124 @@ MODS = {
 def objectsSelectSet(objects, value):
     for o in objects:
         o.select_set(value)
-    
 
-def funcARRAY(mod, scale, object):
+def funcARRAY(mod, scale, object, operator):
     mod.constant_offset_displace[0] *= scale
     mod.constant_offset_displace[1] *= scale
     mod.constant_offset_displace[2] *= scale
     mod.merge_threshold *= scale
     return False
-    
-def funcDISPLACE(mod, scale, object):
+
+def funcDISPLACE(mod, scale, object, operator):
     mod.strength *= scale
-    if bool(mod.texture) & ((mod.texture_coords == "LOCAL") | (mod.texture_coords == "OBJECT")):
-        if hasattr(mod.texture, "noise_scale"):
+    if (bool(mod.texture)
+        & ((mod.texture_coords == "LOCAL") | (mod.texture_coords == "OBJECT"))
+        & operator.scaleTextures):
+        if hasattr(mod.texture, 'noise_scale'):
             mod.texture.noise_scale *= scale
         return "objects have displace texture applied."
-    else: 
+    else:
         return False
 
- 
-def funcSKIN(mod, scale, object):
+def funcSKIN(mod, scale, object, operator):
     verts = object.data.skin_vertices[0].data
     for v in verts:
         v.radius[0] *= scale
         v.radius[1] *= scale
 
-    
-    
-def scaleSkinObjects(C, objects):
-    for o in objects:
-        scaleSkinObject(c, o)
-    
-    
-
 class ScaleWithModifiersOperator(bpy.types.Operator):
     """Apply scale with modifiers"""
     bl_idname = "object.scale_with_modifiers_operator"
     bl_label = "Apply scale with modifiers"
+    bl_options = {'REGISTER', 'UNDO'}
 
-#    @classmethod
-#    def poll(cls, context):
-#        return len(context.selected_objects) == 2
+    deselect : bpy.props.BoolProperty(name="Deselect problem objects", default=False)
+    scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=True)
+
+    @classmethod
+    def poll(cls, context):
+        return (context.space_data.type == 'VIEW_3D'
+            and len(context.selected_objects) > 0
+            and context.object.mode == 'OBJECT')
+
+    def invoke(self, context, event):
+        return self.execute(context)
 
     def execute(self, context):
-        
+
         objects = context.selected_objects
-        
+
         notEven = []
         clones = []
-        
+
         funcWarnings = [];
-        
+
         for obj in objects:
             if not obj.data:
                 continue
-            
+
             users = obj.data.users
             if obj.data.use_fake_user:
                 users-=1
             if users > 1:
                 clones.append(obj)
                 continue
-            
+
             s = obj.scale
             isEven = s[0] == s[1] == s[2]
             if not isEven:
                 notEven.append(obj)
-                
-            
+
+
             scale = (s[0] + s[1] + s[2]) / 3
-             
+
             for mod in obj.modifiers:
-                
+
                 if (mod.type in MODS) & mod.show_viewport:
                     if MODS[mod.type] == 'function':
-                        result = globals()["func" + mod.type](mod, scale, obj)
+                        result = globals()["func" + mod.type](mod, scale, obj, self)
                         if result:
                             funcWarnings.append((obj, result))
-                    else:    
+                    else:
                         for attrname in MODS[mod.type]:
                             val = getattr(mod, attrname)
                             setattr(mod, attrname, val * scale)
-        
+
         warningMessage = "";
-        
+
         warningObjects = []
         if len(funcWarnings):
             keys = {}
             for obj, w in funcWarnings:
                 warningObjects.append(obj)
-                
-                if not w in keys: 
+
+                if not w in keys:
                     keys[w] = 1
-                else: 
+                else:
                     keys[w] += 1
-                    
+
             for k in keys:
                 warningMessage += ("{:d} " + k + " ").format(keys[k])
-        
+
+
         clonesLen = len(clones)
         if clonesLen:
              warningMessage += "{:d} objects are multi-user, ignoring ".format(clonesLen)
              objectsSelectSet(clones, False)
-                 
+
         notEvenLen = len(notEven)
         if notEvenLen:
             warningMessage += "Scale of {:d} objects is not even. ".format(notEvenLen)
         if warningMessage:
             self.report({'WARNING'}, warningMessage + "Some issues are possible ")
         bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
-        objectsSelectSet(notEven, False)
-        objectsSelectSet(warningObjects, False)
-        
+
+        objectsSelectSet(clones, True)
+        if self.deselect:
+            objectsSelectSet(clones + notEven + warningObjects, False)
+
         return { 'FINISHED' }
-    
+
 
 def menu_func(self, context):
     layout = self.layout
@@ -160,7 +164,7 @@ def register():
     from bpy.utils import register_class
     for cls in classes:
         register_class(cls)
-        
+
     bpy.types.VIEW3D_MT_object_apply.append(menu_func)
 
 def unregister():
@@ -170,7 +174,7 @@ def unregister():
 
     bpy.types.VIEW3D_MT_object_apply.remove(menu_func)
 
-    
+
 
 if __name__ == "__main__":
     register()
