@@ -61,8 +61,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     deselect : bpy.props.BoolProperty(name="Deselect problem objects", default=False)
-    scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=True)
-    makeClonesReal: bpy.props.BoolProperty(name="Make objects single user", default=True)
+    scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=False)
+    makeClonesReal: bpy.props.BoolProperty(name="Make objects single user", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -83,6 +83,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         funcWarnings = [];
         
         isClonesModified = False
+        
+        warningMessage = "";
 
         for obj in objects:
             if not obj.data:
@@ -95,6 +97,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                 if self.makeClonesReal & (not isClonesModified):
                     isClonesModified = True
                     bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True, material=False, animation=False)
+                    warningMessage = "Objects are single user now. "
                 else:
                     clones.append(obj)
                     continue
@@ -119,7 +122,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                             val = getattr(mod, attrname)
                             setattr(mod, attrname, val * scale)
 
-        warningMessage = "";
+        
 
         warningObjects = []
         if len(funcWarnings):
