@@ -62,6 +62,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
 
     deselect : bpy.props.BoolProperty(name="Deselect problem objects", default=False)
     scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=True)
+    makeClonesReal: bpy.props.BoolProperty(name="Make objects single user", default=True)
 
     @classmethod
     def poll(cls, context):
@@ -80,6 +81,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         clones = []
 
         funcWarnings = [];
+        
+        isClonesModified = False
 
         for obj in objects:
             if not obj.data:
@@ -89,8 +92,12 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
             if obj.data.use_fake_user:
                 users-=1
             if users > 1:
-                clones.append(obj)
-                continue
+                if self.makeClonesReal & (not isClonesModified):
+                    isClonesModified = True
+                    bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True, material=False, animation=False)
+                else:
+                    clones.append(obj)
+                    continue
 
             s = obj.scale
             isEven = s[0] == s[1] == s[2]
@@ -131,8 +138,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
 
         clonesLen = len(clones)
         if clonesLen:
-             warningMessage += "{:d} objects are multi-user, ignoring ".format(clonesLen)
-             objectsSelectSet(clones, False)
+            warningMessage += "{:d} objects are multi-user, ignoring ".format(clonesLen)
+            objectsSelectSet(clones, False)
 
         notEvenLen = len(notEven)
         if notEvenLen:
