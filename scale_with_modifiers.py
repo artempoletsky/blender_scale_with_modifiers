@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -63,6 +63,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
     deselect : bpy.props.BoolProperty(name="Deselect problem objects", default=False)
     scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=False)
     makeClonesReal: bpy.props.BoolProperty(name="Make objects single user", default=False)
+    unifyModifiersOnly: bpy.props.BoolProperty(name="Unify modifiers only", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -81,9 +82,9 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         clones = []
 
         funcWarnings = [];
-        
+
         isClonesModified = False
-        
+
         warningMessage = "";
 
         for obj in objects:
@@ -98,7 +99,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                     isClonesModified = True
                     bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True, material=False, animation=False)
                     warningMessage = "Objects are single user now. "
-                else:
+                elif not self.unifyModifiersOnly:
                     clones.append(obj)
                     continue
 
@@ -109,6 +110,9 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
 
 
             scale = (s[0] + s[1] + s[2]) / 3
+
+            if self.unifyModifiersOnly:
+                scale = 1 / scale
 
             for mod in obj.modifiers:
 
@@ -122,7 +126,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                             val = getattr(mod, attrname)
                             setattr(mod, attrname, val * scale)
 
-        
+
 
         warningObjects = []
         if len(funcWarnings):
@@ -149,7 +153,9 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
             warningMessage += "Scale of {:d} objects is not even. ".format(notEvenLen)
         if warningMessage:
             self.report({'WARNING'}, warningMessage + "Some issues are possible ")
-        bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
+
+        if not self.unifyModifiersOnly:
+            bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
 
         objectsSelectSet(clones, True)
         if self.deselect:
