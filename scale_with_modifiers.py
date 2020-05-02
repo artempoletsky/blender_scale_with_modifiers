@@ -11,6 +11,7 @@ bl_info = {
 }
 
 import bpy
+from mathutils import Vector
 
 MODS = {
     'ARRAY': 'function',
@@ -54,6 +55,35 @@ def funcSKIN(mod, scale, object, operator):
         v.radius[0] *= scale
         v.radius[1] *= scale
 
+def getModifierSize(mod, scale):
+    attr = MODS[mod.type]
+    if attr == 'function':
+        ## TODO:
+        return 1
+    tupl = ()
+    for key in attr:
+        tupl += (getattr(mod, key), )
+    if len(tupl) < 2:
+        return tupl[0] * scale
+    return Vector(tupl) * scale
+
+def setModifierSize(mod, size):
+    attr = MODS[mod.type]
+    if attr == 'function':
+        ## TODO:
+        return
+
+    i = 0
+    for key in attr:
+        if type(size) == Vector:
+            setattr(mod, key, size[i])
+        else:
+            setattr(mod, key, size)
+        i+=1
+
+def get_scale(obj):
+    s = obj.scale
+    return (s[0] + s[1] + s[2]) / 3
 
 class UnifyModifiersSizeOperator(bpy.types.Operator):
     """Unify modifiers"""
@@ -69,7 +99,25 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
             and context.object.mode == 'OBJECT')
 
     def execute(self, context):
-
+        source  = context.view_layer.objects.active
+        targets = list(context.selected_objects)
+        targets.remove(source)
+        source_scale = get_scale(source)
+        source_index = 0
+        for mod in reversed(source.modifiers):
+            if not mod.type in MODS:
+                continue
+            size = getModifierSize(mod, source_scale)
+            active_type = mod.type
+            for t in targets:
+                target_scale = get_scale(t)
+                target_index = 0
+                for m in reversed(t.modifiers):
+                    if m.type == mod.type:
+                        if target_index == source_index and target_scale != 0:
+                            setModifierSize(m, size / target_scale)
+                        target_index += 1
+            source_index += 1
         return {'FINISHED'}
 
 
