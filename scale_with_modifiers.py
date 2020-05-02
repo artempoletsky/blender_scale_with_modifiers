@@ -25,6 +25,7 @@ MODS = {
     'SHRINKWRAP': {'offset'},
     'WELD': {'merge_threshold'},
     'SKIN': 'function',
+    'REMESH': {'voxel_size'},
 }
 
 def objectsSelectSet(objects, value):
@@ -84,8 +85,12 @@ def getModifierSize(mod, scale):
         return globals()["func" + mod.type + "get"](mod) * scale
     tupl = ()
     for key in attr:
+        if not hasattr(mod, key):
+            continue
         tupl += (getattr(mod, key), )
-    if len(tupl) < 2:
+    if len(tupl) == 0:
+        return 1
+    if len(tupl) == 1:
         return tupl[0] * scale
     return Vector(tupl) * scale
 
@@ -97,6 +102,8 @@ def setModifierSize(mod, size):
 
     i = 0
     for key in attr:
+        if not hasattr(mod, key):
+            continue
         if type(size) == Vector:
             setattr(mod, key, size[i])
         else:
@@ -138,7 +145,7 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
                 target_scale = get_scale(t)
                 target_index = 0
                 for m in reversed(t.modifiers):
-                    print(source_index, target_index, mod.type, m.type)
+                    # print(source_index, target_index, mod.type, m.type)
                     if m.type == mod.type:
                         if target_index == source_index and target_scale != 0:
                             setModifierSize(m, size / target_scale)
@@ -155,7 +162,6 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
     deselect : bpy.props.BoolProperty(name="Deselect problem objects", default=False)
     scaleTextures: bpy.props.BoolProperty(name="Scale procedural displacement textures", default=False)
     makeClonesReal: bpy.props.BoolProperty(name="Make objects single user", default=False)
-    unifyModifiersOnly: bpy.props.BoolProperty(name="Unify modifiers only", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -191,7 +197,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                     isClonesModified = True
                     bpy.ops.object.make_single_user(type='SELECTED_OBJECTS', object=True, obdata=True, material=False, animation=False)
                     warningMessage = "Objects are single user now. "
-                elif not self.unifyModifiersOnly:
+                else:
                     clones.append(obj)
                     continue
 
@@ -203,8 +209,6 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
 
             scale = (s[0] + s[1] + s[2]) / 3
 
-            if self.unifyModifiersOnly:
-                scale = 1 / scale
 
             for mod in obj.modifiers:
 
@@ -215,6 +219,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                             funcWarnings.append((obj, result))
                     else:
                         for attrname in MODS[mod.type]:
+                            if not hasattr(mod, attrname):
+                                continue
                             val = getattr(mod, attrname)
                             setattr(mod, attrname, val * scale)
 
@@ -246,8 +252,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         if warningMessage:
             self.report({'WARNING'}, warningMessage + "Some issues are possible ")
 
-        if not self.unifyModifiersOnly:
-            bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
+
+        bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
 
         objectsSelectSet(clones, True)
         if self.deselect:
