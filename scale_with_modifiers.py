@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -11,6 +11,7 @@ bl_info = {
 }
 
 import bpy
+from mathutils import Vector
 
 MODS = {
     'ARRAY': 'function',
@@ -24,6 +25,7 @@ MODS = {
     'SHRINKWRAP': {'offset'},
     'WELD': {'merge_threshold'},
     'SKIN': 'function',
+    'REMESH': {'voxel_size'},
 }
 
 def objectsSelectSet(objects, value):
@@ -37,6 +39,15 @@ def funcARRAY(mod, scale, object, operator):
     mod.merge_threshold *= scale
     return False
 
+def funcARRAYget(mod):
+    return Vector((mod.constant_offset_displace[0], mod.constant_offset_displace[1], mod.constant_offset_displace[2], mod.merge_threshold))
+
+def funcARRAYset(mod, size):
+    mod.constant_offset_displace[0] = size[0]
+    mod.constant_offset_displace[1] = size[1]
+    mod.constant_offset_displace[2] = size[2]
+    mod.merge_threshold = size[3]
+
 def funcDISPLACE(mod, scale, object, operator):
     mod.strength *= scale
     if (bool(mod.texture)
@@ -48,11 +59,99 @@ def funcDISPLACE(mod, scale, object, operator):
     else:
         return False
 
+def funcDISPLACEget(mod):
+    return mod.strength
+
+def funcDISPLACEset(mod, size):
+    mod.strength = size
+
 def funcSKIN(mod, scale, object, operator):
     verts = object.data.skin_vertices[0].data
     for v in verts:
         v.radius[0] *= scale
         v.radius[1] *= scale
+
+def funcSKINget(mod):
+    # unsupported
+    return 1
+
+def funcSKINset(mod, size):
+    # unsupported
+    return
+
+def getModifierSize(mod, scale):
+    attr = MODS[mod.type]
+    if attr == 'function':
+        return globals()["func" + mod.type + "get"](mod) * scale
+    tupl = ()
+    for key in attr:
+        if not hasattr(mod, key):
+            continue
+        tupl += (getattr(mod, key), )
+    if len(tupl) == 0:
+        return 1
+    if len(tupl) == 1:
+        return tupl[0] * scale
+    return Vector(tupl) * scale
+
+def setModifierSize(mod, size):
+    attr = MODS[mod.type]
+    if attr == 'function':
+        globals()["func" + mod.type + "set"](mod, size)
+        return
+
+    i = 0
+    for key in attr:
+        if not hasattr(mod, key):
+            continue
+        if type(size) == Vector:
+            setattr(mod, key, size[i])
+        else:
+            setattr(mod, key, size)
+        i+=1
+
+def get_scale(obj):
+    s = obj.scale
+    return (s[0] + s[1] + s[2]) / 3
+
+class UnifyModifiersSizeOperator(bpy.types.Operator):
+    """Unify modifiers"""
+    bl_idname = "object.unify_modifiers_operator"
+    bl_label = "Unify modifiers"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return (context.space_data.type == 'VIEW_3D'
+            and len(context.selected_objects) > 0
+            and context.view_layer.objects.active
+            and context.object.mode == 'OBJECT')
+
+    def execute(self, context):
+        source  = context.view_layer.objects.active
+        targets = list(context.selected_objects)
+        targets.remove(source)
+        source_scale = get_scale(source)
+        indices = {}
+        for mod in reversed(source.modifiers):
+            if not mod.type in MODS:
+                continue
+            size = getModifierSize(mod, source_scale)
+            indices[mod.type] = indices[mod.type] + 1 if mod.type in indices else 0
+            if not mod.show_viewport:
+                continue
+            source_index = indices[mod.type]
+            for t in targets:
+                target_scale = get_scale(t)
+                target_index = 0
+                for m in reversed(t.modifiers):
+                    # print(source_index, target_index, mod.type, m.type)
+                    if m.type == mod.type:
+                        if target_index == source_index and target_scale != 0:
+                            setModifierSize(m, size / target_scale)
+                        target_index += 1
+        return {'FINISHED'}
+
 
 class ScaleWithModifiersOperator(bpy.types.Operator):
     """Apply scale with modifiers"""
@@ -81,9 +180,9 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         clones = []
 
         funcWarnings = [];
-        
+
         isClonesModified = False
-        
+
         warningMessage = "";
 
         for obj in objects:
@@ -110,6 +209,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
 
             scale = (s[0] + s[1] + s[2]) / 3
 
+
             for mod in obj.modifiers:
 
                 if (mod.type in MODS) & mod.show_viewport:
@@ -119,10 +219,12 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                             funcWarnings.append((obj, result))
                     else:
                         for attrname in MODS[mod.type]:
+                            if not hasattr(mod, attrname):
+                                continue
                             val = getattr(mod, attrname)
                             setattr(mod, attrname, val * scale)
 
-        
+
 
         warningObjects = []
         if len(funcWarnings):
@@ -149,6 +251,8 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
             warningMessage += "Scale of {:d} objects is not even. ".format(notEvenLen)
         if warningMessage:
             self.report({'WARNING'}, warningMessage + "Some issues are possible ")
+
+
         bpy.ops.object.transform_apply(scale=True, location=False, rotation=False)
 
         objectsSelectSet(clones, True)
@@ -158,16 +262,23 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         return { 'FINISHED' }
 
 
-def menu_func(self, context):
+def menu_apply(self, context):
     layout = self.layout
     layout.separator()
 
     layout.operator_context = "INVOKE_DEFAULT"
     layout.operator(ScaleWithModifiersOperator.bl_idname, text=ScaleWithModifiersOperator.bl_label)
 
+def menu_make_links(self, context):
+    layout = self.layout
+    layout.separator()
+
+    layout.operator_context = "INVOKE_DEFAULT"
+    layout.operator(UnifyModifiersSizeOperator.bl_idname, text=UnifyModifiersSizeOperator.bl_label)
 
 classes = (
     ScaleWithModifiersOperator,
+    UnifyModifiersSizeOperator,
 )
 
 def register():
@@ -175,7 +286,9 @@ def register():
     for cls in classes:
         register_class(cls)
 
-    bpy.types.VIEW3D_MT_object_apply.append(menu_func)
+
+    bpy.types.VIEW3D_MT_object_apply.append(menu_apply)
+    bpy.types.VIEW3D_MT_make_links.append(menu_make_links)
 
 def unregister():
     from bpy.utils import unregister_class
@@ -183,6 +296,7 @@ def unregister():
         unregister_class(cls)
 
     bpy.types.VIEW3D_MT_object_apply.remove(menu_func)
+    bpy.types.VIEW3D_MT_object_apply.remove(menu_make_links)
 
 
 

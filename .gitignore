@@ -2,3 +2,4 @@
 *.blend1
 /demo video
 *.png
+/__pycache__
