@@ -54,6 +54,25 @@ def funcSKIN(mod, scale, object, operator):
         v.radius[0] *= scale
         v.radius[1] *= scale
 
+
+class UnifyModifiersSizeOperator(bpy.types.Operator):
+    """Unify modifiers"""
+    bl_idname = "object.unify_modifiers_operator"
+    bl_label = "Unify modifiers"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return (context.space_data.type == 'VIEW_3D'
+            and len(context.selected_objects) > 0
+            and context.view_layer.objects.active
+            and context.object.mode == 'OBJECT')
+
+    def execute(self, context):
+
+        return {'FINISHED'}
+
+
 class ScaleWithModifiersOperator(bpy.types.Operator):
     """Apply scale with modifiers"""
     bl_idname = "object.scale_with_modifiers_operator"
@@ -164,16 +183,23 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
         return { 'FINISHED' }
 
 
-def menu_func(self, context):
+def menu_apply(self, context):
     layout = self.layout
     layout.separator()
 
     layout.operator_context = "INVOKE_DEFAULT"
     layout.operator(ScaleWithModifiersOperator.bl_idname, text=ScaleWithModifiersOperator.bl_label)
 
+def menu_make_links(self, context):
+    layout = self.layout
+    layout.separator()
+
+    layout.operator_context = "INVOKE_DEFAULT"
+    layout.operator(UnifyModifiersSizeOperator.bl_idname, text=UnifyModifiersSizeOperator.bl_label)
 
 classes = (
     ScaleWithModifiersOperator,
+    UnifyModifiersSizeOperator,
 )
 
 def register():
@@ -181,7 +207,9 @@ def register():
     for cls in classes:
         register_class(cls)
 
-    bpy.types.VIEW3D_MT_object_apply.append(menu_func)
+
+    bpy.types.VIEW3D_MT_object_apply.append(menu_apply)
+    bpy.types.VIEW3D_MT_make_links.append(menu_make_links)
 
 def unregister():
     from bpy.utils import unregister_class
@@ -189,6 +217,7 @@ def unregister():
         unregister_class(cls)
 
     bpy.types.VIEW3D_MT_object_apply.remove(menu_func)
+    bpy.types.VIEW3D_MT_object_apply.remove(menu_make_links)
 
 
 
