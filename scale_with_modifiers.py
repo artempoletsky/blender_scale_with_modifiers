@@ -38,6 +38,15 @@ def funcARRAY(mod, scale, object, operator):
     mod.merge_threshold *= scale
     return False
 
+def funcARRAYget(mod):
+    return Vector((mod.constant_offset_displace[0], mod.constant_offset_displace[1], mod.constant_offset_displace[2], mod.merge_threshold))
+
+def funcARRAYset(mod, size):
+    mod.constant_offset_displace[0] = size[0]
+    mod.constant_offset_displace[1] = size[1]
+    mod.constant_offset_displace[2] = size[2]
+    mod.merge_threshold = size[3]
+
 def funcDISPLACE(mod, scale, object, operator):
     mod.strength *= scale
     if (bool(mod.texture)
@@ -49,17 +58,30 @@ def funcDISPLACE(mod, scale, object, operator):
     else:
         return False
 
+def funcDISPLACEget(mod):
+    return mod.strength
+
+def funcDISPLACEset(mod, size):
+    mod.strength = size
+
 def funcSKIN(mod, scale, object, operator):
     verts = object.data.skin_vertices[0].data
     for v in verts:
         v.radius[0] *= scale
         v.radius[1] *= scale
 
+def funcSKINget(mod):
+    # unsupported
+    return 1
+
+def funcSKINset(mod, size):
+    # unsupported
+    return
+
 def getModifierSize(mod, scale):
     attr = MODS[mod.type]
     if attr == 'function':
-        ## TODO:
-        return 1
+        return globals()["func" + mod.type + "get"](mod) * scale
     tupl = ()
     for key in attr:
         tupl += (getattr(mod, key), )
@@ -70,7 +92,7 @@ def getModifierSize(mod, scale):
 def setModifierSize(mod, size):
     attr = MODS[mod.type]
     if attr == 'function':
-        ## TODO:
+        globals()["func" + mod.type + "set"](mod, size)
         return
 
     i = 0
@@ -109,6 +131,8 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
                 continue
             size = getModifierSize(mod, source_scale)
             indices[mod.type] = indices[mod.type] + 1 if mod.type in indices else 0
+            if not mod.show_viewport:
+                continue
             source_index = indices[mod.type]
             for t in targets:
                 target_scale = get_scale(t)
