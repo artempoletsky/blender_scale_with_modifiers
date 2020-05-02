@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 4, 0),
+    "version": (1, 4, 1),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -120,6 +120,8 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
     bl_label = "Unify modifiers"
     bl_options = {'REGISTER', 'UNDO'}
 
+    use_names: bpy.props.BoolProperty(name="Use names", default=False)
+
     @classmethod
     def poll(cls, context):
         return (context.space_data.type == 'VIEW_3D'
@@ -147,7 +149,11 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
                 for m in reversed(t.modifiers):
                     # print(source_index, target_index, mod.type, m.type)
                     if m.type == mod.type:
-                        if target_index == source_index and target_scale != 0:
+                        do_set_size = self.use_names and m.name == mod.name
+                        # print(self.use_names, m.name, mod.name, do_set_size)
+                        if not do_set_size and not self.use_names:
+                            do_set_size = target_index == source_index
+                        if do_set_size and target_scale != 0:
                             setModifierSize(m, size / target_scale)
                         target_index += 1
         return {'FINISHED'}
