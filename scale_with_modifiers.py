@@ -103,21 +103,22 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
         targets = list(context.selected_objects)
         targets.remove(source)
         source_scale = get_scale(source)
-        source_index = 0
+        indices = {}
         for mod in reversed(source.modifiers):
             if not mod.type in MODS:
                 continue
             size = getModifierSize(mod, source_scale)
-            active_type = mod.type
+            indices[mod.type] = indices[mod.type] + 1 if mod.type in indices else 0
+            source_index = indices[mod.type]
             for t in targets:
                 target_scale = get_scale(t)
                 target_index = 0
                 for m in reversed(t.modifiers):
+                    print(source_index, target_index, mod.type, m.type)
                     if m.type == mod.type:
                         if target_index == source_index and target_scale != 0:
                             setModifierSize(m, size / target_scale)
                         target_index += 1
-            source_index += 1
         return {'FINISHED'}
 
 
