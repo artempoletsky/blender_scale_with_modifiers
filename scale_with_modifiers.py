@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 4, 1),
+    "version": (1, 4, 2),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
