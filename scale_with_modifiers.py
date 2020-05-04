@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 4, 2),
+    "version": (1, 4, 3),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -114,12 +114,38 @@ def get_scale(obj):
     s = obj.scale
     return (s[0] + s[1] + s[2]) / 3
 
-# stolen from "Copy attributes" addon
+def equal_points_len(target, source):
+    tl = len(target)
+    sl = len(source)
+    if tl == sl:
+        return
+    while tl > sl:
+        target.remove(target[1])
+        tl = len(target)
+    while tl < sl:
+        target.add(0, 0)
+        tl = len(target)
+    return
+def copy_profile(target, source):
+    copy_modifier(target, source)
+    equal_points_len(target.points, source.points)
+    # len = max(len(source.points), len(target.points))
+    for i in range(0, len(source.points)):
+        p1 = source.points[i]
+        p2 = target.points[i]
+        # new_point = target.points.add(p.location[0], p.location[1])
+        p2.handle_type_1 = p1.handle_type_1
+        p2.handle_type_2 = p1.handle_type_2
+        p2.location = p1.location
+        # copy_modifier(new_point, p)
+    target.update()
+    return
+
 def copy_modifier(target, source, string=""):
     """Copy attributes from source to target that have string in them"""
     for attr in dir(source):
         if attr in {'custom_profile'}:
-            copy_modifier(getattr(target, attr), getattr(source, attr))
+            copy_profile(getattr(target, attr), getattr(source, attr))
             continue
         if attr.find(string) > -1:
             try:
