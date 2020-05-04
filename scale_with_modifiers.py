@@ -114,6 +114,20 @@ def get_scale(obj):
     s = obj.scale
     return (s[0] + s[1] + s[2]) / 3
 
+# stolen from "Copy attributes" addon
+def copy_modifier(target, source, string=""):
+    """Copy attributes from source to target that have string in them"""
+    for attr in dir(source):
+        if attr in {'custom_profile'}:
+            copy_modifier(getattr(target, attr), getattr(source, attr))
+            continue
+        if attr.find(string) > -1:
+            try:
+                setattr(target, attr, getattr(source, attr))
+            except:
+                pass
+    return
+
 class UnifyModifiersSizeOperator(bpy.types.Operator):
     """Unify modifiers"""
     bl_idname = "object.unify_modifiers_operator"
@@ -121,6 +135,7 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     use_names: bpy.props.BoolProperty(name="Use names", default=False)
+    copy_all: bpy.props.BoolProperty(name="Copy all attributes", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -154,6 +169,8 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
                         if not do_set_size and not self.use_names:
                             do_set_size = target_index == source_index
                         if do_set_size and target_scale != 0:
+                            if self.copy_all:
+                                copy_modifier(m, mod)
                             setModifierSize(m, size / target_scale)
                         target_index += 1
         return {'FINISHED'}
