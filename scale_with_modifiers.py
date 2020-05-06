@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 4, 3),
+    "version": (1, 4, 4),
     "blender": (2, 82, 0),
     "location": "Object > Apply > Apply scale with modifiers",
     "description": "Adds operator which applies scale to an object and its modifiers",
@@ -174,7 +174,7 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
         source  = context.view_layer.objects.active
         targets = list(context.selected_objects)
         targets.remove(source)
-        source_scale = get_scale(source)
+        source_scale = abs(get_scale(source))
         indices = {}
         for mod in reversed(source.modifiers):
             if not mod.type in MODS:
@@ -185,7 +185,7 @@ class UnifyModifiersSizeOperator(bpy.types.Operator):
                 continue
             source_index = indices[mod.type]
             for t in targets:
-                target_scale = get_scale(t)
+                target_scale = abs(get_scale(t))
                 target_index = 0
                 for m in reversed(t.modifiers):
                     # print(source_index, target_index, mod.type, m.type)
@@ -256,7 +256,7 @@ class ScaleWithModifiersOperator(bpy.types.Operator):
                 notEven.append(obj)
 
 
-            scale = (s[0] + s[1] + s[2]) / 3
+            scale = abs((s[0] + s[1] + s[2]) / 3)
 
 
             for mod in obj.modifiers:
@@ -344,7 +344,7 @@ def unregister():
     for cls in reversed(classes):
         unregister_class(cls)
 
-    bpy.types.VIEW3D_MT_object_apply.remove(menu_func)
+    bpy.types.VIEW3D_MT_object_apply.remove(menu_apply)
     bpy.types.VIEW3D_MT_object_apply.remove(menu_make_links)
 
 
