@@ -8,13 +8,21 @@ In object mode select objects needed to be edited. Select the last object to mak
 
 Press ctrl + L. Select `Unify modifiers` option.
 
+## How it works.
+
+The script searches modifiers with same type from the bottom of the modifiers stack to top, and copies them.
+
+![](https://raw.githubusercontent.com/artempoletsky/blender_scale_with_modifiers/master/img/example%202.png)
+
 You can disallow the script to affect some modifiers by hiding them in viewport on the `active` object. 
 In this case they will still affect the position of others modifiers.
 
 For example, you have 2 objects with 2 bevels. 
-If you want to copy the first bevel from the first object to the first bevel from the second object.
+And you want to copy the first bevel of the first object to the first bevel of the second object.
 
-## How it works.
+![](https://raw.githubusercontent.com/artempoletsky/blender_scale_with_modifiers/master/img/example%201.png)
+
+You will get the same result, if you will press `Use names` option in this example. 
 
 ## Options
 
