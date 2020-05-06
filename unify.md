@@ -22,7 +22,7 @@ And you want to copy the first bevel of the first object to the first bevel of t
 
 ![](https://raw.githubusercontent.com/artempoletsky/blender_scale_with_modifiers/master/img/example%201.png)
 
-You will get the same result, if you will press `Use names` option in this example. 
+You will get the same result, if you will delete second bevel and press `Use names` option in this example.
 
 ## Options
 
