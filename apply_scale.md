@@ -25,6 +25,6 @@ If False, multy user objects will be ignored by the script and deselected.
 3. Solidify- Thickness
 4. Wireframe - Thickness
 5. Displace - Strength, Scale of procedural textures for displace modifier
-6. Shrinkwwrap - Offset
+6. Shrinkwrap - Offset
 7. Skin - radius of vertices
 8. Blender 2.83+ - Voxel remesh.
