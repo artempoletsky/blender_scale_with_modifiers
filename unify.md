@@ -30,6 +30,3 @@ You will get the same result, if you will press `Use names` option in this examp
 Use it if you want the script working from the top of the stack to the bottom as well.
 2. `Copy all attributes` - The script will copy all modifiers attributes, not only the size. 
 
-
-## Supported modifiers and their properties
-
