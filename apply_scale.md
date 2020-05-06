@@ -18,7 +18,7 @@ For more predictable results use UV mapping type.
 3. Make objects single user. Uses internal Blender operator of the same name before the opration. 
 If False, multy user objects will be ignored by the script and deselected.
 
-## Supported modifiers and they properties
+## Supported modifiers and their properties
 
 1. Array - Constant offset values
 2. Screw - Screw offset
