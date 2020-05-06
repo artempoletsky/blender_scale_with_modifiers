@@ -11,6 +11,7 @@ Demo: https://youtu.be/EdqKX0Vy6AM
 ## Operators
 
 Ctrl + A -> [Apply scale with modifiers](./apply_scale.md)
+
 Ctrl + L -> [Unify modifiers](./unify.md)
 
 You can support me on Gumroad, if you like my work. 
