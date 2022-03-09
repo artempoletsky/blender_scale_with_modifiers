@@ -1,0 +1,1 @@
+1.4.5 - fixed bug with the percent offset type of the bevel modifier

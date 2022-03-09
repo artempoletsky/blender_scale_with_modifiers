@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Scale with modifiers",
     "author": "Artem Poletsky",
-    "version": (1, 4, 4),
-    "blender": (2, 82, 0),
+    "version": (1, 4, 5),
+    "blender": (3, 0, 1),
     "location": "Object > Apply > Apply scale with modifiers",
-    "description": "Adds operator which applies scale to an object and its modifiers",
+    "description": "Adds an operator which applies scale to an object and its modifiers",
     "warning": "",
     "wiki_url": "",
     "category": "Object",
@@ -16,7 +16,7 @@ from mathutils import Vector
 MODS = {
     'ARRAY': 'function',
     'BOOLEAN': {'double_threshold'},
-    'BEVEL': {'width'},
+    'BEVEL': 'function',
     'SCREW': {'screw_offset', 'merge_threshold'},
     'MIRROR': {'merge_threshold'},
     'SOLIDIFY': {'thickness'},
@@ -31,6 +31,17 @@ MODS = {
 def objectsSelectSet(objects, value):
     for o in objects:
         o.select_set(value)
+
+def funcBEVEL(mod, scale, object, operator):
+    if mod.offset_type != 'PERCENT':
+        mod.width *= scale;
+    return False
+
+def funcBEVELget(mod):
+    return mod.width
+
+def funcBEVELset(mod, size):
+    mod.width = size
 
 def funcARRAY(mod, scale, object, operator):
     mod.constant_offset_displace[0] *= scale
